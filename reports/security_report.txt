@@ -1,0 +1,26 @@
+============================================================
+       LOG ANALYSIS SECURITY REPORT
+       Generated: 2026-04-27 07:57:46
+============================================================
+
+[HIGH] BRUTE FORCE ATTEMPTS
+----------------------------------------
+  Source IP   : 192.168.1.105
+  Attempts    : 5
+  First Seen  : Apr 27 09:01:12
+  Last Seen   : Apr 27 09:01:20
+
+  Source IP   : 10.0.0.55
+  Attempts    : 3
+  First Seen  : Apr 27 09:15:33
+  Last Seen   : Apr 27 09:15:37
+
+[MEDIUM] PRIVILEGE ESCALATION (sudo to root)
+----------------------------------------
+  User        : abiram
+  Timestamp   : Apr 27 09:10:45
+  Command     : abiram : TTY=pts/0 ; PWD=/home/abiram ; USER=root ; COMMAND=/bin/bash
+
+============================================================
+  TOTAL ALERTS: 3
+============================================================
