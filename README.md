@@ -64,4 +64,4 @@ Get a free API key at https://abuseipdb.com
 Abiram R — Aspiring SOC Analyst | ISC2 CC Candidate
 GitHub: https://github.com/abiramr44
 Medium: https://medium.com/@abiramr44
-LinkedIn: https://linkedin.com/in/abiram-r-69896a213
+LinkedIn: https://linkedin.com/in/abiramr44
