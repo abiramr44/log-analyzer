@@ -1,9 +1,10 @@
 import sys
 from parser import parse_log_file
 from detector import run_all_detections
-from reporter import generate_report
+from reporter import generate_report, generate_json_report
 
 REPORT_FILE = 'reports/security_report.txt'
+JSON_REPORT_FILE = 'reports/security_report.json'
 
 def main():
     if len(sys.argv) < 2:
@@ -25,6 +26,8 @@ def main():
 
     print('[*] Generating report...')
     generate_report(results, REPORT_FILE)
+    generate_json_report(results, JSON_REPORT_FILE)
+
 
 if __name__ == '__main__':
     main()

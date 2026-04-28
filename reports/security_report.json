@@ -1,0 +1,31 @@
+{
+    "generated": "2026-04-27 21:46:30",
+    "total_alerts": 3,
+    "brute_force": [
+        {
+            "type": "BRUTE_FORCE",
+            "severity": "HIGH",
+            "source_ip": "192.168.1.105",
+            "count": 5,
+            "first_seen": "Apr 27 09:01:12",
+            "last_seen": "Apr 27 09:01:20"
+        },
+        {
+            "type": "BRUTE_FORCE",
+            "severity": "HIGH",
+            "source_ip": "10.0.0.55",
+            "count": 3,
+            "first_seen": "Apr 27 09:15:33",
+            "last_seen": "Apr 27 09:15:37"
+        }
+    ],
+    "privilege_escalation": [
+        {
+            "type": "SUDO_ROOT",
+            "severity": "MEDIUM",
+            "user": "abiram",
+            "timestamp": "Apr 27 09:10:45",
+            "message": "abiram : TTY=pts/0 ; PWD=/home/abiram ; USER=root ; COMMAND=/bin/bash"
+        }
+    ]
+}
