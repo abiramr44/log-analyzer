@@ -3,6 +3,7 @@ from parser import parse_log_file
 from detector import run_all_detections
 from reporter import generate_report, generate_json_report
 from reputation import check_all_ips
+from notifier import send_alert
 
 REPORT_FILE = 'reports/security_report.txt'
 JSON_REPORT_FILE = 'reports/security_report.json'
@@ -38,6 +39,8 @@ def main():
     results['reputation'] = reputation_results
     generate_report(results, REPORT_FILE)
     generate_json_report(results, JSON_REPORT_FILE)
+
+    send_alert(results, REPORT_FILE)
 
 if __name__ == '__main__':
     main()
