@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Log Analyzer Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0e1a; color: #e0e0e0; font-family: 'Segoe UI', Arial, sans-serif; padding: 24px; }
+    h1 { color: #00d4aa; font-size: 24px; margin-bottom: 4px; }
+    .subtitle { color: #8899bb; font-size: 13px; margin-bottom: 28px; }
+    .cards { display: flex; gap: 16px; margin-bottom: 28px; flex-wrap: wrap; }
+    .card { background: #131929; border: 1px solid #1e2d45; border-radius: 8px; padding: 20px 28px; flex: 1; min-width: 160px; }
+    .card .label { font-size: 12px; color: #8899bb; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+    .card .value { font-size: 36px; font-weight: 700; }
+    .card.high .value { color: #ff4757; }
+    .card.medium .value { color: #ffa502; }
+    .card.info .value { color: #00d4aa; }
+    .section { background: #131929; border: 1px solid #1e2d45; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .section h2 { font-size: 14px; color: #00d4aa; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; border-bottom: 1px solid #1e2d45; padding-bottom: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; color: #8899bb; font-weight: 500; padding: 8px 12px; border-bottom: 1px solid #1e2d45; }
+    td { padding: 10px 12px; border-bottom: 1px solid #0f1624; }
+    tr:last-child td { border-bottom: none; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge.high { background: rgba(255,71,87,0.15); color: #ff4757; border: 1px solid rgba(255,71,87,0.3); }
+    .badge.medium { background: rgba(255,165,2,0.15); color: #ffa502; border: 1px solid rgba(255,165,2,0.3); }
+    .badge.clean { background: rgba(0,212,170,0.15); color: #00d4aa; border: 1px solid rgba(0,212,170,0.3); }
+    .badge.malicious { background: rgba(255,71,87,0.15); color: #ff4757; border: 1px solid rgba(255,71,87,0.3); }
+    .no-data { color: #8899bb; font-size: 13px; text-align: center; padding: 20px; }
+    .timestamp { color: #8899bb; font-size: 12px; margin-top: 4px; }
+    #dropzone { border: 2px dashed #1e2d45; border-radius: 8px; padding: 40px; text-align: center; color: #8899bb; margin-bottom: 24px; cursor: pointer; transition: border-color 0.2s; }
+    #dropzone:hover { border-color: #00d4aa; color: #00d4aa; }
+    #dropzone.hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>🛡 Log Analyzer Dashboard</h1>
+  <p class="subtitle">SSH Auth Log Security Report Viewer</p>
+
+  <div id="dropzone" onclick="document.getElementById('fileInput').click()">
+    <div style="font-size:32px;margin-bottom:12px">📂</div>
+    <div>Click to load <strong>security_report.json</strong></div>
+    <div style="font-size:12px;margin-top:8px">or drag and drop the file here</div>
+    <input type="file" id="fileInput" accept=".json" style="display:none" onchange="loadFile(event)">
+  </div>
+
+  <div id="dashboard" style="display:none">
+    <div class="cards">
+      <div class="card high">
+        <div class="label">Brute Force</div>
+        <div class="value" id="bfCount">0</div>
+      </div>
+      <div class="card medium">
+        <div class="label">Privilege Escalation</div>
+        <div class="value" id="sudoCount">0</div>
+      </div>
+      <div class="card info">
+        <div class="label">Total Alerts</div>
+        <div class="value" id="totalCount">0</div>
+      </div>
+      <div class="card info">
+        <div class="label">IPs Checked</div>
+        <div class="value" id="ipCount">0</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>⚠ Brute Force Attempts</h2>
+      <table id="bfTable">
+        <thead>
+          <tr>
+            <th>Source IP</th>
+            <th>Attempts</th>
+            <th>First Seen</th>
+            <th>Last Seen</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody id="bfBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>🔐 Privilege Escalation</h2>
+      <table id="sudoTable">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Timestamp</th>
+            <th>Command</th>
+            <th>Severity</th>
+          </tr>
+        </thead>
+        <tbody id="sudoBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>🌐 IP Reputation</h2>
+      <table id="repTable">
+        <thead>
+          <tr>
+            <th>IP Address</th>
+            <th>Abuse Score</th>
+            <th>Total Reports</th>
+            <th>Last Reported</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="repBody"></tbody>
+      </table>
+    </div>
+
+    <p class="timestamp" id="generatedAt"></p>
+  </div>
+
+  <script>
+    function loadFile(event) {
+      const file = event.target.files[0];
+      const reader = new FileReader();
+      reader.onload = e => renderDashboard(JSON.parse(e.target.result));
+      reader.readAsText(file);
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = '#00d4aa'; });
+    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = '#1e2d45'; });
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      const file = e.dataTransfer.files[0];
+      const reader = new FileReader();
+      reader.onload = ev => renderDashboard(JSON.parse(ev.target.result));
+      reader.readAsText(file);
+    });
+
+    function renderDashboard(data) {
+      document.getElementById('dropzone').classList.add('hidden');
+      document.getElementById('dashboard').style.display = 'block';
+
+      document.getElementById('bfCount').textContent = data.brute_force?.length || 0;
+      document.getElementById('sudoCount').textContent = data.privilege_escalation?.length || 0;
+      document.getElementById('totalCount').textContent = data.total_alerts || 0;
+      document.getElementById('ipCount').textContent = data.reputation?.length || 0;
+      document.getElementById('generatedAt').textContent = 'Report generated: ' + (data.generated || 'N/A');
+
+      const bfBody = document.getElementById('bfBody');
+      bfBody.innerHTML = '';
+      if (data.brute_force?.length) {
+        data.brute_force.forEach(a => {
+          bfBody.innerHTML += `<tr>
+            <td>${a.source_ip}</td>
+            <td>${a.count}</td>
+            <td>${a.first_seen}</td>
+            <td>${a.last_seen}</td>
+            <td><span class="badge high">${a.severity}</span></td>
+          </tr>`;
+        });
+      } else {
+        bfBody.innerHTML = '<tr><td colspan="5" class="no-data">No brute force activity detected</td></tr>';
+      }
+
+      const sudoBody = document.getElementById('sudoBody');
+      sudoBody.innerHTML = '';
+      if (data.privilege_escalation?.length) {
+        data.privilege_escalation.forEach(a => {
+          sudoBody.innerHTML += `<tr>
+            <td>${a.user}</td>
+            <td>${a.timestamp}</td>
+            <td style="font-family:monospace;font-size:11px">${a.message}</td>
+            <td><span class="badge medium">${a.severity}</span></td>
+          </tr>`;
+        });
+      } else {
+        sudoBody.innerHTML = '<tr><td colspan="4" class="no-data">No privilege escalation detected</td></tr>';
+      }
+
+      const repBody = document.getElementById('repBody');
+      repBody.innerHTML = '';
+      if (data.reputation?.length) {
+        data.reputation.forEach(r => {
+          if (r.error) return;
+          const status = r.is_malicious ? 'malicious' : 'clean';
+          repBody.innerHTML += `<tr>
+            <td>${r.ip}</td>
+            <td>${r.abuse_score}/100</td>
+            <td>${r.total_reports}</td>
+            <td>${r.last_reported || 'N/A'}</td>
+            <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
+          </tr>`;
+        });
+      } else {
+        repBody.innerHTML = '<tr><td colspan="5" class="no-data">No reputation data available</td></tr>';
+      }
+    }
+  </script>
+</body>
+</html>
