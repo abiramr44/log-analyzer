@@ -1,3 +1,4 @@
+import os
 import sys
 from parser import parse_log_file
 from detector import run_all_detections
@@ -15,12 +16,23 @@ def main():
         sys.exit(1)
 
     LOG_FILE = sys.argv[1]
+    
+    resolved = os.path.abspath(LOG_FILE)
+    BLOCKED = ["..", "/etc", "/proc", "/sys", "/root", "/home"]
+    if any(pattern in resolved for pattern in BLOCKED):
+       print("[!] Error: Invalid path")
+       sys.exit(1)
+
+    if not os.path.isfile(resolved):
+       print(f'[!] Log file not found: {resolved}')
+       sys.exit(1)
+
 
     print('[*] Starting log analysis...')
-    print(f'[*] Target log file: {LOG_FILE}')
+    print(f'[*] Target log file: {resolved}')
 
     print('[*] Parsing log file...')
-    parsed_lines = parse_log_file(LOG_FILE)
+    parsed_lines = parse_log_file(resolved)
     print(f'[+] Parsed {len(parsed_lines)} log entries')
 
     print('[*] Running detections...')
@@ -44,3 +56,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

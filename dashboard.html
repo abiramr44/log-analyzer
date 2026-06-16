@@ -35,8 +35,7 @@
   </style>
 </head>
 <body>
-
-  <h1>🛡 Log Analyzer Dashboard</h1>
+  <h1>Log Analyzer Dashboard</h1>
   <p class="subtitle">SSH Auth Log Security Report Viewer</p>
 
   <div id="dropzone" onclick="document.getElementById('fileInput').click()">
@@ -48,151 +47,139 @@
 
   <div id="dashboard" style="display:none">
     <div class="cards">
-      <div class="card high">
-        <div class="label">Brute Force</div>
-        <div class="value" id="bfCount">0</div>
-      </div>
-      <div class="card medium">
-        <div class="label">Privilege Escalation</div>
-        <div class="value" id="sudoCount">0</div>
-      </div>
-      <div class="card info">
-        <div class="label">Total Alerts</div>
-        <div class="value" id="totalCount">0</div>
-      </div>
-      <div class="card info">
-        <div class="label">IPs Checked</div>
-        <div class="value" id="ipCount">0</div>
-      </div>
+      <div class="card high"><div class="label">Brute Force</div><div class="value" id="bfCount">0</div></div>
+      <div class="card medium"><div class="label">Privilege Escalation</div><div class="value" id="sudoCount">0</div></div>
+      <div class="card info"><div class="label">Total Alerts</div><div class="value" id="totalCount">0</div></div>
+      <div class="card info"><div class="label">IPs Checked</div><div class="value" id="ipCount">0</div></div>
     </div>
 
     <div class="section">
-      <h2>⚠ Brute Force Attempts</h2>
-      <table id="bfTable">
-        <thead>
-          <tr>
-            <th>Source IP</th>
-            <th>Attempts</th>
-            <th>First Seen</th>
-            <th>Last Seen</th>
-            <th>Severity</th>
-          </tr>
-        </thead>
-        <tbody id="bfBody"></tbody>
-      </table>
+      <h2>Brute Force Attempts</h2>
+      <table><thead><tr><th>Source IP</th><th>Attempts</th><th>First Seen</th><th>Last Seen</th><th>Severity</th></tr></thead>
+      <tbody id="bfBody"></tbody></table>
     </div>
 
     <div class="section">
-      <h2>🔐 Privilege Escalation</h2>
-      <table id="sudoTable">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>Timestamp</th>
-            <th>Command</th>
-            <th>Severity</th>
-          </tr>
-        </thead>
-        <tbody id="sudoBody"></tbody>
-      </table>
+      <h2>Privilege Escalation</h2>
+      <table><thead><tr><th>User</th><th>Timestamp</th><th>Command</th><th>Severity</th></tr></thead>
+      <tbody id="sudoBody"></tbody></table>
     </div>
 
     <div class="section">
-      <h2>🌐 IP Reputation</h2>
-      <table id="repTable">
-        <thead>
-          <tr>
-            <th>IP Address</th>
-            <th>Abuse Score</th>
-            <th>Total Reports</th>
-            <th>Last Reported</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody id="repBody"></tbody>
-      </table>
+      <h2>IP Reputation</h2>
+      <table><thead><tr><th>IP Address</th><th>Abuse Score</th><th>Total Reports</th><th>Last Reported</th><th>Status</th></tr></thead>
+      <tbody id="repBody"></tbody></table>
     </div>
 
     <p class="timestamp" id="generatedAt"></p>
   </div>
 
   <script>
-    function loadFile(event) {
-      const file = event.target.files[0];
-      const reader = new FileReader();
-      reader.onload = e => renderDashboard(JSON.parse(e.target.result));
+    function sanitize(val) {
+      var div = document.createElement('div');
+      div.textContent = String(val == null ? '' : val);
+      return div.innerHTML;
+    }
+
+    function makeBadge(cls, text) {
+      var span = document.createElement('span');
+      span.className = 'badge ' + cls;
+      span.textContent = text;
+      return span;
+    }
+
+    function makeCell(content, mono) {
+      var td = document.createElement('td');
+      if (mono) { td.style.fontFamily = 'monospace'; td.style.fontSize = '11px'; }
+      if (content && content.nodeType) {
+        td.appendChild(content);
+      } else {
+        td.textContent = String(content == null ? '' : content);
+      }
+      return td;
+    }
+
+    function noDataRow(cols) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td');
+      td.colSpan = cols;
+      td.className = 'no-data';
+      td.textContent = 'No data available';
+      tr.appendChild(td);
+      return tr;
+    }
+
+    function loadFile(e) {
+      var file = e.target.files[0];
+      var reader = new FileReader();
+      reader.onload = function(ev) { renderDashboard(JSON.parse(ev.target.result)); };
       reader.readAsText(file);
     }
 
-    const dropzone = document.getElementById('dropzone');
-    dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.style.borderColor = '#00d4aa'; });
-    dropzone.addEventListener('dragleave', () => { dropzone.style.borderColor = '#1e2d45'; });
-    dropzone.addEventListener('drop', e => {
+    document.getElementById('dropzone').addEventListener('dragover', function(e) {
+      e.preventDefault(); this.style.borderColor = '#00d4aa';
+    });
+    document.getElementById('dropzone').addEventListener('dragleave', function() {
+      this.style.borderColor = '#1e2d45';
+    });
+    document.getElementById('dropzone').addEventListener('drop', function(e) {
       e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      const reader = new FileReader();
-      reader.onload = ev => renderDashboard(JSON.parse(ev.target.result));
-      reader.readAsText(file);
+      var reader = new FileReader();
+      reader.onload = function(ev) { renderDashboard(JSON.parse(ev.target.result)); };
+      reader.readAsText(e.dataTransfer.files[0]);
     });
 
     function renderDashboard(data) {
       document.getElementById('dropzone').classList.add('hidden');
       document.getElementById('dashboard').style.display = 'block';
-
-      document.getElementById('bfCount').textContent = data.brute_force?.length || 0;
-      document.getElementById('sudoCount').textContent = data.privilege_escalation?.length || 0;
+      document.getElementById('bfCount').textContent = (data.brute_force || []).length;
+      document.getElementById('sudoCount').textContent = (data.privilege_escalation || []).length;
       document.getElementById('totalCount').textContent = data.total_alerts || 0;
-      document.getElementById('ipCount').textContent = data.reputation?.length || 0;
-      document.getElementById('generatedAt').textContent = 'Report generated: ' + (data.generated || 'N/A');
+      document.getElementById('ipCount').textContent = (data.reputation || []).length;
+      document.getElementById('generatedAt').textContent = 'Report generated: ' + sanitize(data.generated || 'N/A');
 
-      const bfBody = document.getElementById('bfBody');
+      var bfBody = document.getElementById('bfBody');
       bfBody.innerHTML = '';
-      if (data.brute_force?.length) {
-        data.brute_force.forEach(a => {
-          bfBody.innerHTML += `<tr>
-            <td>${a.source_ip}</td>
-            <td>${a.count}</td>
-            <td>${a.first_seen}</td>
-            <td>${a.last_seen}</td>
-            <td><span class="badge high">${a.severity}</span></td>
-          </tr>`;
+      if (data.brute_force && data.brute_force.length) {
+        data.brute_force.forEach(function(a) {
+          var tr = document.createElement('tr');
+          tr.appendChild(makeCell(a.source_ip));
+          tr.appendChild(makeCell(a.count));
+          tr.appendChild(makeCell(a.first_seen));
+          tr.appendChild(makeCell(a.last_seen));
+          tr.appendChild(makeCell(makeBadge('high', a.severity)));
+          bfBody.appendChild(tr);
         });
-      } else {
-        bfBody.innerHTML = '<tr><td colspan="5" class="no-data">No brute force activity detected</td></tr>';
-      }
+      } else { bfBody.appendChild(noDataRow(5)); }
 
-      const sudoBody = document.getElementById('sudoBody');
+      var sudoBody = document.getElementById('sudoBody');
       sudoBody.innerHTML = '';
-      if (data.privilege_escalation?.length) {
-        data.privilege_escalation.forEach(a => {
-          sudoBody.innerHTML += `<tr>
-            <td>${a.user}</td>
-            <td>${a.timestamp}</td>
-            <td style="font-family:monospace;font-size:11px">${a.message}</td>
-            <td><span class="badge medium">${a.severity}</span></td>
-          </tr>`;
+      if (data.privilege_escalation && data.privilege_escalation.length) {
+        data.privilege_escalation.forEach(function(a) {
+          var tr = document.createElement('tr');
+          tr.appendChild(makeCell(a.user));
+          tr.appendChild(makeCell(a.timestamp));
+          tr.appendChild(makeCell(a.message, true));
+          tr.appendChild(makeCell(makeBadge('medium', a.severity)));
+          sudoBody.appendChild(tr);
         });
-      } else {
-        sudoBody.innerHTML = '<tr><td colspan="4" class="no-data">No privilege escalation detected</td></tr>';
-      }
+      } else { sudoBody.appendChild(noDataRow(4)); }
 
-      const repBody = document.getElementById('repBody');
+      var repBody = document.getElementById('repBody');
       repBody.innerHTML = '';
-      if (data.reputation?.length) {
-        data.reputation.forEach(r => {
+      if (data.reputation && data.reputation.length) {
+        data.reputation.forEach(function(r) {
           if (r.error) return;
-          const status = r.is_malicious ? 'malicious' : 'clean';
-          repBody.innerHTML += `<tr>
-            <td>${r.ip}</td>
-            <td>${r.abuse_score}/100</td>
-            <td>${r.total_reports}</td>
-            <td>${r.last_reported || 'N/A'}</td>
-            <td><span class="badge ${status}">${status.toUpperCase()}</span></td>
-          </tr>`;
+          var status = r.is_malicious ? 'malicious' : 'clean';
+          var tr = document.createElement('tr');
+          tr.appendChild(makeCell(r.ip));
+          tr.appendChild(makeCell(r.abuse_score + '/100'));
+          tr.appendChild(makeCell(r.total_reports));
+          tr.appendChild(makeCell(r.last_reported || 'N/A'));
+          tr.appendChild(makeCell(makeBadge(status, status.toUpperCase())));
+          repBody.appendChild(tr);
         });
-      } else {
-        repBody.innerHTML = '<tr><td colspan="5" class="no-data">No reputation data available</td></tr>';
-      }
+      } else { repBody.appendChild(noDataRow(5)); }
     }
   </script>
 </body>
